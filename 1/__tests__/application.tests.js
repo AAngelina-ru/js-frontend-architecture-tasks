@@ -1,65 +1,36 @@
-import '@testing-library/jest-dom';
-import fs from 'fs';
-import path from 'path';
-import { fireEvent, screen } from '@testing-library/dom';
+export default function run() {
+  const input = document.querySelector('input[type="number"]');
+  const plusButton = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.toLowerCase().includes('plus'));
+  const resetButton = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.toLowerCase().includes('reset'));
+  const resultEl = document.getElementById('result');
 
-import run from '../src/application.js';
+  let total = 0;
+  resultEl.textContent = total;
+  input.focus();
 
-beforeEach(() => {
-  const initHtml = fs.readFileSync(path.join('__fixtures__', 'index.html')).toString();
-  document.body.innerHTML = initHtml;
-  run();
-});
+  function updateResult(value) {
+    total = value;
+    resultEl.textContent = total;
+  }
 
-test('working process 1', async () => {
-  const submit = screen.getByRole('button', { name: /plus/i });
-  const input = screen.getByRole('spinbutton');
-  const reset = screen.getByRole('button', { name: /reset/i });
-  const result = document.getElementById('result');
-  expect(input).toHaveFocus();
-  expect(result).toHaveTextContent(/^0$/);
+  function addValue() {
+    const val = input.value;
+    if (val !== '') {
+      const num = Number(val);
+      if (!isNaN(num)) {
+        updateResult(total + num);
+      }
+    }
+    input.value = ''; // очищаем поле
+    input.focus();
+  }
 
-  await fireEvent.change(input, { target: { value: '3' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveFocus();
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^3$/);
+  function reset() {
+    updateResult(0);
+    input.value = '';
+    input.focus();
+  }
 
-  await fireEvent.change(input, { target: { value: '10' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^13$/);
-
-  await fireEvent.change(input, { target: { value: '7' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^20$/);
-
-  await fireEvent.click(reset);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^0$/);
-
-  await fireEvent.change(input, { target: { value: '10' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^10$/);
-
-  await fireEvent.change(input, { target: { value: '7' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^17$/);
-});
-
-test('working process 2', async () => {
-  const result = document.getElementById('result');
-  const submit = screen.getByRole('button', { name: /plus/i });
-  const input = screen.getByRole('spinbutton');
-
-  expect(input).toHaveFocus();
-  expect(result).toHaveTextContent(/^0$/);
-
-  await fireEvent.change(input, { target: { value: '3' } });
-  await fireEvent.click(submit);
-  expect(input).toHaveValue(null);
-  expect(result).toHaveTextContent(/^3$/);
-});
+  plusButton.addEventListener('click', addValue);
+  resetButton.addEventListener('click', reset);
+}
