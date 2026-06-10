@@ -63,3 +63,41 @@ test('working process 2', async () => {
   expect(input).toHaveValue(null);
   expect(result).toHaveTextContent(/^3$/);
 });
+// src/application.js
+export default function run() {
+  const input = document.querySelector('input[role="spinbutton"]');
+  const plusButton = document.querySelector('button[aria-label="plus"], button:contains("Plus")');
+  const resetButton = document.querySelector('button[aria-label="reset"], button:contains("Reset")');
+  const resultDiv = document.getElementById('result');
+
+  let currentValue = 0;
+  resultDiv.textContent = currentValue;
+
+  function clearInput() {
+    input.value = '';          // clears the input
+    input.focus();
+  }
+
+  function updateResult(newValue) {
+    currentValue = newValue;
+    resultDiv.textContent = currentValue;
+  }
+
+  function handlePlus() {
+    let addend = parseInt(input.value, 10);
+    if (isNaN(addend)) addend = 0;
+    updateResult(currentValue + addend);
+    clearInput();
+  }
+
+  function handleReset() {
+    updateResult(0);
+    clearInput();
+  }
+
+  plusButton.addEventListener('click', handlePlus);
+  resetButton.addEventListener('click', handleReset);
+
+  // Initial focus
+  input.focus();
+}
