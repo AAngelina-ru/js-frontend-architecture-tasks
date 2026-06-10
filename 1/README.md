@@ -8,8 +8,48 @@
 
 Сделайте калькулятор дружественным пользователю: устанавливайте фокус на поле для ввода при каждой отрисовке формы (включая первую) и очищайте форму после отправки/очистки.
 
-## Подсказки
 
-- Данные из формы приходят в виде текста. Для преобразования строки в число используйте [parseInt()](https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/parseInt).
-- [form.reset()](https://developer.mozilla.org/ru/docs/Web/API/HTMLFormElement/reset)
-- [input.focus()](https://developer.mozilla.org/ru/docs/Web/API/HTMLFormElement/reset)
+
+import React, { useState, useEffect, useRef } from 'react';
+
+const Calculator = () => {
+  const [sum, setSum] = useState(0);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  });
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const number = parseFloat(inputValue);
+    if (!isNaN(number)) {
+      setSum(prevSum => prevSum + number);
+    }
+    setInputValue('');
+  };
+
+  const handleReset = () => {
+    setSum(0);
+    setInputValue('');
+  };
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          ref={inputRef}
+        />
+        <button type="submit">плюс</button>
+        <button type="button" onClick={handleReset}>сброс</button>
+      </form>
+      <div>Сумма: {sum}</div>
+    </div>
+  );
+};
+
+export default Calculator;
