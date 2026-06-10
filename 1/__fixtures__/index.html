@@ -14,3 +14,217 @@
     </div>
   </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>➕ Simple Cumulative Calculator</title>
+  <!-- Bootstrap 4.6 + minimal custom touch for clean spacing & focus -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+  <style>
+    /* subtle polish for interactive feedback */
+    .card-calc {
+      max-width: 500px;
+      border-radius: 1.25rem;
+      border: none;
+      background: #fefefe;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.02);
+      transition: all 0.1s ease;
+    }
+    #result {
+      font-size: 3rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #0a3b5c;
+      background: #eef2fa;
+      border-radius: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      display: inline-block;
+      min-width: 160px;
+      text-align: center;
+      letter-spacing: 1px;
+      font-family: 'SF Mono', 'JetBrains Mono', monospace;
+    }
+    .btn-plus {
+      background-color: #1e6f3f;
+      border-color: #1a5c36;
+      transition: all 0.15s;
+    }
+    .btn-plus:hover {
+      background-color: #0f5430;
+      border-color: #0c4628;
+      transform: translateY(-1px);
+    }
+    .btn-reset-outline {
+      border-width: 2px;
+      font-weight: 500;
+    }
+    input.form-control {
+      border-radius: 2rem;
+      border: 1px solid #ced8e6;
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      background-color: white;
+    }
+    input.form-control:focus {
+      border-color: #1e6f3f;
+      box-shadow: 0 0 0 0.2rem rgba(30, 111, 63, 0.2);
+    }
+    .result-label {
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      color: #4a5b6e;
+      margin-bottom: 0.25rem;
+    }
+  </style>
+</head>
+<body class="bg-light d-flex align-items-center min-vh-100">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card-calc p-4 p-md-5">
+          <div class="text-center mb-4">
+            <h3 class="mb-1 font-weight-bold text-dark">📟 Cumulative Adder</h3>
+            <p class="text-muted small">Enter a number → click <strong>plus</strong> → running total</p>
+          </div>
+          
+          <!-- form with inline layout, but responsive stacked on mobile (bootstrap handles) -->
+          <form name="calculator" class="form-inline justify-content-center justify-content-sm-between flex-wrap">
+            <div class="form-group mb-2 mb-sm-0 flex-fill mr-sm-2">
+              <input type="number" required="required" class="form-control w-100" name="number" id="inputNumber" placeholder="Type any number ..." step="any" value="">
+            </div>
+            <div class="d-flex justify-content-between w-auto mt-2 mt-sm-0">
+              <input type="submit" class="btn btn-plus text-white font-weight-bold px-4 mr-2" value="➕ plus">
+              <button type="button" class="btn btn-outline-secondary btn-reset-outline px-4" id="resetBtn">⟳ reset</button>
+            </div>
+          </form>
+          
+          <!-- result display area with context -->
+          <div class="text-center mt-5 pt-2">
+            <div class="result-label"><span class="mr-1">🔢</span> CURRENT TOTAL</div>
+            <div id="result">0</div>
+            <p class="small text-muted mt-3 mb-0">
+              <span>✨ click <kbd class="bg-light border">plus</kbd> or press <kbd class="bg-light border">Enter</kbd> to add</span>
+              <br><span class="opacity-50">⟳ reset → clears total & input</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- DOM elements ----------
+      const form = document.forms['calculator'];               // the form element
+      const numberInput = form.elements['number'];            // input field (name="number")
+      const resetButton = document.getElementById('resetBtn');
+      const resultDiv = document.getElementById('result');
+      
+      // ---------- application state ----------
+      let currentSum = 0;       // keeps running total (starts at 0)
+      
+      // Helper: update the displayed result in the UI
+      function updateResultDisplay() {
+        // Format nicely: integers without trailing .00, but keep decimals when needed.
+        // Using toLocaleString for clean readability (no scientific notation for big numbers).
+        // Also preserves negative sign and decimal precision up to 6 decimals trimming excess zeros.
+        if (Number.isInteger(currentSum)) {
+          resultDiv.textContent = currentSum.toString();
+        } else {
+          // show up to 6 decimal places but remove trailing zeros
+          let formatted = currentSum.toFixed(6).replace(/\.?0+$/, '');
+          resultDiv.textContent = formatted;
+        }
+      }
+      
+      // Core: add number from input field to current total
+      function performAddition() {
+        // get raw value from number input (supports decimals, negative, scientific notation but number input handles)
+        let rawValue = numberInput.value;
+        
+        // parse float: empty string or invalid => NaN
+        let addend = parseFloat(rawValue);
+        
+        // Edge treatment: if field is empty, whitespace, or not a valid number → treat as 0 (no change)
+        // Also if input is invalid (NaN) we treat as 0 to be robust, no error message needed (silent friendly)
+        if (isNaN(addend)) {
+          addend = 0;
+        }
+        
+        // Update the cumulative sum
+        currentSum += addend;
+        
+        // Update result display
+        updateResultDisplay();
+        
+        // (Optional) keep input field as is for consecutive additions – user can type again.
+        // Do NOT clear input by design, because typical calculator pattern: keep last entered value.
+        // But we give focus back to input for fast workflow.
+        numberInput.focus();
+      }
+      
+      // Reset total to zero, and also clear input field (full reset to initial state)
+      function resetCalculator() {
+        currentSum = 0;
+        updateResultDisplay();
+        // Clear the input field to avoid confusion: gives fresh start
+        numberInput.value = '';
+        // Optional: also remove any validation styling / set focus
+        numberInput.focus();
+      }
+      
+      // ---------- Event binding & prevention of page reload ----------
+      
+      // Handle form submission: both 'plus' button click and 'Enter' key inside input
+      form.addEventListener('submit', function(event) {
+        // Prevent default browser behavior (POST/GET reload)
+        event.preventDefault();
+        // Perform the addition operation
+        performAddition();
+      });
+      
+      // Reset button click listener: full reset to zero and clear input
+      resetButton.addEventListener('click', function() {
+        resetCalculator();
+      });
+      
+      // Additional UX: if user clicks on plus button explicitly, form submit event also triggers
+      // but we already prevented default and called performAddition. Perfect.
+      // Also guarantee that any manual edge of number input being empty or non-numeric results in addend 0.
+      
+      // Bonus: Clear "required" default HTML5 validation popup? Actually we added required attribute,
+      // but the browser validation popup might interfere if field empty and submit occurs.
+      // We want fully numeric additions without validation blocking. Since we override submit and treat empty as 0,
+      // but the browser's built-in 'required' will popup and block submit before our JS handler!
+      // Because HTML5 validation occurs before submit event. To avoid annoying validation bubble:
+      // we remove the 'required' attribute dynamically OR we set noValidate attribute on the form.
+      // Better: set novalidate on form to override constraint validation and give full control to our logic.
+      // But the original HTML required="required" might interfere with UX. Let's override by adding novalidate attribute.
+      form.setAttribute('novalidate', 'true');
+      // Also we keep "required" inside the HTML but we disable validation with novalidate: user gets no popup.
+      // That's perfect: user can leave empty and we treat as 0.
+      
+      // Also handle edge case: if the input contains invalid letters? input[type=number] restricts to numbers,
+      // but it can be empty or contain 'e'? Actually type=number on empty/invalid returns empty string.
+      // However we use parseFloat so it's fine. To be extra safe: event if user enters non-numeric like "12abc",
+      // in Chrome it becomes empty? Actually type="number" does not allow non-numeric chars; it's safe.
+      
+      // One more detail: reset button also resets result to 0 without affecting any external side effects.
+      // Additional user feedback: In case of very high precision floating point (e.g., 0.1 + 0.2) we keep actual JS sum.
+      // Formatting prevents long decimal tails but retains significant digits.
+      
+      // Initialize display (0)
+      updateResultDisplay();
+      
+      // Optional: If there's some pre-filled number in the input on load? none, but we ensure clean start.
+      // Also if user types decimal point and clicks plus multiple times it works.
+      
+      // Expose for debugging but not needed
+      console.log('✅ Cumulative calculator ready — add numbers, reset total & input');
+    })();
+  </script>
+</body>
+</html>
