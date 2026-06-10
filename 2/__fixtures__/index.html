@@ -5,3 +5,494 @@
   </form>
   <ul id="tasks" class="list-group" aria-label="Tasks"></ul>
 </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>✔️ Persistent To-Do List | Tasks Manager</title>
+  <!-- Bootstrap 5 CSS + Icons (optional but clean) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts for subtle refinement -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: linear-gradient(145deg, #f4f7fc 0%, #eef2f5 100%);
+      min-height: 100vh;
+      padding: 1.5rem 0;
+    }
+    /* card-like container */
+    .todo-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(1px);
+      border-radius: 1.5rem;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.02);
+      padding: 1.8rem 1.8rem 2rem 1.8rem;
+      transition: all 0.2s ease;
+    }
+    /* custom input focus */
+    .form-control:focus {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+    }
+    .list-group-item {
+      background-color: #ffffff;
+      border-radius: 1rem !important;
+      margin-bottom: 0.65rem;
+      border: 1px solid #e9ecef;
+      transition: all 0.2s;
+      padding: 0.8rem 1rem;
+    }
+    .list-group-item:hover {
+      background-color: #fefefe;
+      border-color: #dee2e6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+    .task-text {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #1e2a3e;
+      transition: color 0.1s, text-decoration 0.1s;
+      word-break: break-word;
+      padding-left: 0.5rem;
+    }
+    .task-completed .task-text {
+      text-decoration: line-through;
+      color: #8a99aa;
+      font-weight: 400;
+    }
+    .task-checkbox {
+      width: 1.2rem;
+      height: 1.2rem;
+      cursor: pointer;
+      accent-color: #0d6efd;
+      margin-right: 0.25rem;
+    }
+    .delete-task-btn {
+      opacity: 0.7;
+      transition: opacity 0.15s, transform 0.1s;
+      border-radius: 2rem;
+      padding: 0.25rem 0.8rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .delete-task-btn:hover {
+      opacity: 1;
+      transform: scale(0.96);
+      background-color: #dc3545;
+      border-color: #dc3545;
+    }
+    .filter-btn-group .btn {
+      border-radius: 2rem;
+      padding: 0.4rem 1.1rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-right: 0.5rem;
+    }
+    .stats-badge {
+      background: #e9ecef;
+      border-radius: 40px;
+      padding: 0.35rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+    .clear-completed-btn {
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      padding: 0.35rem 1rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .empty-message {
+      text-align: center;
+      color: #8395a7;
+      font-weight: 500;
+      padding: 1.8rem 0.5rem;
+      background: #f8fafc;
+      border-radius: 1rem;
+      font-style: italic;
+    }
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #1f2b38, #2c3e50);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      margin-bottom: 0.25rem;
+    }
+    hr {
+      opacity: 0.5;
+      margin: 1rem 0;
+    }
+    footer small {
+      font-size: 0.7rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container my-3" style="max-width: 780px;">
+  <div class="todo-card">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+      <div>
+        <h1>✔️ to-do list</h1>
+        <p class="text-muted mb-0 small">stay organized, persist forever</p>
+      </div>
+      <div class="stats-badge mt-2 mt-sm-0" id="taskStats" aria-live="polite">
+        loading...
+      </div>
+    </div>
+
+    <!-- ORIGINAL HTML (exactly preserved structure: container.m-3? we embed inside container, but original code snippet had container m-3 and form/ul) 
+         We keep the exact same classes and elements, just inside this card to respect design -->
+    <div class="container m-0 p-0"> <!-- mimic original context, but to avoid double container, we use m-0 p-0 but same inner structure -->
+      <form class="form-inline d-flex flex-wrap gap-2 mb-4" id="todoForm">
+        <input type="text" required="required" class="form-control me-3 flex-grow-1" name="name" id="taskInput" placeholder="Write a new task ..." autocomplete="off">
+        <button type="submit" class="btn btn-primary me-3 px-4 shadow-sm">➕ add</button>
+      </form>
+
+      <!-- FILTER & EXTRA TOOLBAR (additional but fully supports filter requirement, clear completed optional extra) -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 mb-3">
+        <div class="filter-btn-group mb-2 mb-sm-0" role="group" aria-label="Task filters">
+          <button type="button" class="btn btn-outline-primary active-filter" data-filter="all">📋 All</button>
+          <button type="button" class="btn btn-outline-secondary" data-filter="incomplete">⏳ Active</button>
+          <button type="button" class="btn btn-outline-secondary" data-filter="completed">✅ Completed</button>
+        </div>
+        <button type="button" id="clearCompletedBtn" class="btn btn-outline-danger clear-completed-btn" aria-label="Clear all completed tasks">🗑️ Clear completed</button>
+      </div>
+
+      <!-- TASKS LIST (ul with id="tasks" and original classes) -->
+      <ul id="tasks" class="list-group" aria-label="Tasks list"></ul>
+    </div>
+    <hr class="mt-4">
+    <footer class="d-flex justify-content-between small text-muted">
+      <span>✨ click checkbox → mark done</span>
+      <span>💾 automatically saved</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ---------- DOM elements ----------
+    const tasksContainer = document.getElementById('tasks');
+    const todoForm = document.getElementById('todoForm');
+    const taskInput = document.getElementById('taskInput');
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+    const taskStatsSpan = document.getElementById('taskStats');
+
+    // ---------- App State ----------
+    let tasks = [];           // array of { id, text, completed }
+    let currentFilter = 'all';   // 'all', 'completed', 'incomplete'
+
+    // ---------- Helper: save to localStorage ----------
+    function saveToLocalStorage() {
+      localStorage.setItem('todoListApp', JSON.stringify(tasks));
+    }
+
+    // ---------- Load from localStorage or default seed ----------
+    function loadFromLocalStorage() {
+      const stored = localStorage.getItem('todoListApp');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            tasks = parsed;
+            return;
+          }
+        } catch(e) { console.warn(e); }
+      }
+      // seed default tasks (nice demo)
+      tasks = [
+        { id: 1710000001001, text: "✨ Review project documentation", completed: false },
+        { id: 1710000001002, text: "🎯 Implement localStorage persistence", completed: true },
+        { id: 1710000001003, text: "📱 Make responsive design", completed: false },
+        { id: 1710000001004, text: "🧹 Add filter (All / Active / Completed)", completed: false }
+      ];
+      saveToLocalStorage();
+    }
+
+    // ---------- Update stats (tasks remaining & total) ----------
+    function updateStats() {
+      if (!taskStatsSpan) return;
+      const total = tasks.length;
+      const incompleteCount = tasks.filter(t => !t.completed).length;
+      const completedCount = total - incompleteCount;
+      if (total === 0) {
+        taskStatsSpan.textContent = `📭 no tasks yet`;
+        taskStatsSpan.setAttribute('aria-label', 'No tasks, add something');
+      } else {
+        taskStatsSpan.textContent = `📌 ${incompleteCount} pending  •  ✔️ ${completedCount} done`;
+        taskStatsSpan.setAttribute('aria-label', `${incompleteCount} tasks pending, ${completedCount} completed`);
+      }
+    }
+
+    // ---------- Render tasks based on currentFilter ----------
+    function renderTasks() {
+      if (!tasksContainer) return;
+
+      // 1) filter tasks according to currentFilter
+      let filteredTasks = [];
+      if (currentFilter === 'all') {
+        filteredTasks = [...tasks];
+      } else if (currentFilter === 'completed') {
+        filteredTasks = tasks.filter(task => task.completed === true);
+      } else if (currentFilter === 'incomplete') {
+        filteredTasks = tasks.filter(task => task.completed === false);
+      }
+
+      // 2) clear container
+      tasksContainer.innerHTML = '';
+
+      // 3) handle empty state
+      if (filteredTasks.length === 0) {
+        const emptyLi = document.createElement('li');
+        emptyLi.className = 'list-group-item empty-message';
+        emptyLi.setAttribute('aria-label', 'No tasks match current filter');
+        let message = '';
+        if (tasks.length === 0) message = '✨ Your list is empty. Add a task above! ✨';
+        else if (currentFilter === 'completed') message = '✅ No completed tasks yet. Mark some as done!';
+        else if (currentFilter === 'incomplete') message = '⏳ All tasks are completed! Great job.';
+        else message = '📭 No tasks available. Start by adding a new task.';
+        emptyLi.textContent = message;
+        tasksContainer.appendChild(emptyLi);
+        updateStats();
+        return;
+      }
+
+      // 4) build each task item
+      filteredTasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = `list-group-item d-flex justify-content-between align-items-center ${task.completed ? 'task-completed' : ''}`;
+        li.setAttribute('data-task-id', task.id);
+        
+        // left side: checkbox + text
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'd-flex align-items-center gap-2 flex-grow-1';
+        
+        // checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'task-checkbox';
+        checkbox.checked = task.completed;
+        checkbox.setAttribute('aria-label', `Mark "${task.text}" as ${task.completed ? 'incomplete' : 'completed'}`);
+        checkbox.dataset.id = task.id;
+        
+        // task text span
+        const textSpan = document.createElement('span');
+        textSpan.className = 'task-text';
+        textSpan.textContent = task.text;
+        
+        leftDiv.appendChild(checkbox);
+        leftDiv.appendChild(textSpan);
+        
+        // delete button (right side)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-task-btn btn btn-sm btn-danger';
+        deleteBtn.textContent = '✖ Delete';
+        deleteBtn.setAttribute('aria-label', `Delete task: ${task.text}`);
+        deleteBtn.dataset.id = task.id;
+        
+        li.appendChild(leftDiv);
+        li.appendChild(deleteBtn);
+        tasksContainer.appendChild(li);
+      });
+      
+      // update stats after each render
+      updateStats();
+      // also highlight active filter button (visual)
+      updateFilterButtonActiveState();
+    }
+
+    // ---------- highlight active filter in UI ----------
+    function updateFilterButtonActiveState() {
+      filterButtons.forEach(btn => {
+        const filterValue = btn.getAttribute('data-filter');
+        if (filterValue === currentFilter) {
+          btn.classList.remove('btn-outline-primary', 'btn-outline-secondary');
+          btn.classList.add('btn-primary', 'active-filter');
+        } else {
+          btn.classList.remove('btn-primary', 'active-filter');
+          btn.classList.add(filterValue === 'all' ? 'btn-outline-primary' : 'btn-outline-secondary');
+        }
+      });
+    }
+
+    // ---------- Add new task ----------
+    function addTask(taskTextRaw) {
+      const trimmedText = taskTextRaw.trim();
+      if (trimmedText === "") {
+        // visual subtle feedback + but we also respect required attribute, but JS validation guarantees no empty
+        taskInput.classList.add('is-invalid');
+        setTimeout(() => taskInput.classList.remove('is-invalid'), 800);
+        return false;
+      }
+      taskInput.classList.remove('is-invalid');
+      // create new task object
+      const newTask = {
+        id: Date.now() + Math.floor(Math.random() * 10000),
+        text: trimmedText,
+        completed: false
+      };
+      tasks.push(newTask);
+      saveToLocalStorage();
+      // after adding, keep current filter (but re-render will show it if matches)
+      renderTasks();
+      return true;
+    }
+
+    // ---------- Toggle task completion (by id) ----------
+    function toggleTaskCompletion(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        saveToLocalStorage();
+        renderTasks();   // re-render preserves current filter
+      }
+    }
+
+    // ---------- Delete task (by id) ----------
+    function deleteTaskById(taskId) {
+      const taskExists = tasks.some(t => t.id === taskId);
+      if (!taskExists) return;
+      tasks = tasks.filter(t => t.id !== taskId);
+      saveToLocalStorage();
+      renderTasks(); // re-render with same filter
+    }
+
+    // ---------- Clear all completed tasks (extra but useful) ----------
+    function clearCompletedTasks() {
+      const hadCompleted = tasks.some(t => t.completed === true);
+      if (!hadCompleted) {
+        // optional subtle hint
+        return;
+      }
+      tasks = tasks.filter(t => !t.completed);
+      saveToLocalStorage();
+      // after clearing, if currentFilter is 'completed' it becomes empty, but still fine, user sees empty message.
+      renderTasks();
+    }
+
+    // ---------- Set filter and re-render ----------
+    function setFilter(filterType) {
+      if (filterType === 'all' || filterType === 'completed' || filterType === 'incomplete') {
+        currentFilter = filterType;
+        renderTasks();
+      }
+    }
+
+    // ---------- EVENT DELEGATION (handles checkboxes & delete buttons dynamically) ----------
+    function setupDelegation() {
+      if (!tasksContainer) return;
+      // Handle checkbox toggle (change event)
+      tasksContainer.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.classList && target.classList.contains('task-checkbox')) {
+          e.stopPropagation();
+          const taskId = parseInt(target.dataset.id);
+          if (!isNaN(taskId)) {
+            toggleTaskCompletion(taskId);
+          }
+        }
+      });
+      
+      // Handle delete button click
+      tasksContainer.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-task-btn');
+        if (deleteBtn) {
+          e.preventDefault();
+          const taskId = parseInt(deleteBtn.dataset.id);
+          if (!isNaN(taskId)) {
+            deleteTaskById(taskId);
+          }
+        }
+      });
+    }
+
+    // ---------- Filter buttons listeners ----------
+    function bindFilterButtons() {
+      filterButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const filterValue = btn.getAttribute('data-filter');
+          if (filterValue) {
+            setFilter(filterValue);
+          }
+        });
+      });
+    }
+
+    // ---------- Form submission (add task) ----------
+    function bindFormSubmit() {
+      if (todoForm) {
+        todoForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const newTaskValue = taskInput.value;
+          const success = addTask(newTaskValue);
+          if (success) {
+            taskInput.value = '';    // clear field after successful add
+            taskInput.focus();
+          } else {
+            taskInput.value = '';     // optional: but keep empty? we keep but show invalid
+            taskInput.placeholder = 'Task cannot be empty!';
+            setTimeout(() => {
+              taskInput.placeholder = 'Write a new task ...';
+            }, 1500);
+            taskInput.focus();
+          }
+        });
+      }
+    }
+
+    // ---------- clear completed button handler ----------
+    function bindClearCompleted() {
+      if (clearCompletedBtn) {
+        clearCompletedBtn.addEventListener('click', () => {
+          clearCompletedTasks();
+        });
+      }
+    }
+
+    // ---------- optional: live validation for better UX ----------
+    function enhanceInputValidation() {
+      if (taskInput) {
+        taskInput.addEventListener('input', () => {
+          if (taskInput.value.trim() !== '') {
+            taskInput.classList.remove('is-invalid');
+          }
+        });
+      }
+    }
+
+    // ---------- initialise app: load data, render, bind events ----------
+    function init() {
+      loadFromLocalStorage();      // load tasks (or seeds)
+      renderTasks();               // initial render with 'all' filter
+      setupDelegation();           // event delegation for toggling and removing
+      bindFilterButtons();        // filter listeners
+      bindFormSubmit();           // add task via form
+      bindClearCompleted();       // clear completed tasks
+      enhanceInputValidation();   // gentle input validation styling
+      // ensure that filter UI reflects active filter 'all'
+      updateFilterButtonActiveState();
+      // Save anytime the window is closed? already saves on every mutation
+    }
+
+    // start application when DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+<!-- Bootstrap JS not mandatory for functionality, but adds optional interactivity for future (not needed) -->
+</body>
+</html>
