@@ -86,3 +86,65 @@ module.exports = () => {
     }
     return config;
 };
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const config = {
+    entry: './src/index.js',
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: 'bundle.js', // явное имя выходного файла
+    },
+    devServer: {
+        open: true,
+        host: 'localhost',
+        setupMiddlewares: (middlewares, devServer) => {
+            if (!devServer) {
+                throw new Error("webpack-dev-server is not defined");
+            }
+
+            // Добавляем middleware для парсинга JSON тела запроса
+            devServer.app.use(require('express').json());
+
+            const task1 = { name: 'Первая задача' };
+            const task2 = { name: 'Вторая задача' };
+            let data = { items: [task2, task1] };
+
+            devServer.app.get("/api/tasks", (req, res) => {
+                res.json(data);
+            });
+
+            devServer.app.post("/api/tasks", (req, res) => {
+                // Теперь req.body корректно содержит данные задачи
+                data.items.unshift(req.body);
+                res.status(201).json({ message: 'Success!' });
+            });
+
+            return middlewares;
+        },
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: 'index.html',
+        }),
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.(js|jsx)$/i,
+                loader: 'babel-loader',
+            },
+            {
+                test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
+                type: 'asset',
+            },
+        ],
+    },
+};
+
+module.exports = () => {
+    config.mode = isProduction ? 'production' : 'development';
+    return config;
+};
