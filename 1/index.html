@@ -22,3 +22,132 @@
 </body>
 
 </html>
+This is a complete HTML document that creates a working calculator. It adds your entered number to a running total when you click "plus", and resets the total to zero with the reset button.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- Bootstrap CSS (for consistent styling, as originally included) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+    integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+  <title>Plus Calculator</title>
+  <style>
+    /* Optional: subtle interactive feedback */
+    .container {
+      max-width: 500px;
+      margin-top: 2rem;
+    }
+    #result {
+      font-size: 3rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #dee2e6;
+      transition: all 0.1s ease;
+    }
+    .form-inline {
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .form-inline .form-control {
+      flex: 2 1 auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container m-3 mx-auto">
+    <form class="form-inline" id="calculatorForm">
+      <input type="number" required="required" class="form-control mr-3" id="numberInput" name="number" placeholder="Enter number" step="any" value="">
+      <input type="submit" class="btn btn-primary mr-3" value="plus">
+      <button type="button" class="btn btn-outline-primary" id="resetBtn">reset</button>
+    </form>
+    <div id="result">0</div>
+  </div>
+
+  <script>
+    // Fully functional script: maintains a running sum, adds number on submit,
+    // resets sum and input field when reset button is clicked.
+    (function() {
+      // Get DOM elements
+      const form = document.getElementById('calculatorForm');
+      const numberInput = document.getElementById('numberInput');
+      const resultDiv = document.getElementById('result');
+      const resetButton = document.getElementById('resetBtn');
+
+      // Initialize the running total
+      let currentSum = 0;
+
+      // Helper function to update the displayed result
+      function updateResultDisplay() {
+        resultDiv.textContent = currentSum;
+      }
+
+      // Helper: read and validate number from input
+      // Returns a valid number (float), or null if input is invalid/empty
+      function getValidNumberFromInput() {
+        const rawValue = numberInput.value.trim();
+        if (rawValue === '') return null;
+        // Use Number() for conversion – handles integers, floats, negative, scientific
+        const num = Number(rawValue);
+        // Check for valid finite number (also reject NaN, Infinity)
+        if (isNaN(num) || !isFinite(num)) return null;
+        return num;
+      }
+
+      // Handle form submission (the "plus" button click or Enter key)
+      function onFormSubmit(event) {
+        event.preventDefault();   // prevent page reload or any default form action
+
+        const numberToAdd = getValidNumberFromInput();
+        
+        if (numberToAdd === null) {
+          // Optional but user-friendly: show a temporary validation hint without breaking UX
+          // Since the input field has 'required' attribute, empty field is blocked by browser.
+          // However, invalid non-number values (like letters in number field? browser number input prevents most)
+          // But just in case we handle gracefully: nothing added, but we can briefly highlight input.
+          numberInput.classList.add('is-invalid');
+          setTimeout(() => numberInput.classList.remove('is-invalid'), 500);
+          return;
+        }
+        
+        // Remove any validation styling if present
+        numberInput.classList.remove('is-invalid');
+        
+        // Add the valid number to the current sum
+        currentSum += numberToAdd;
+        
+        // Update the result display
+        updateResultDisplay();
+        
+        // Optional: keep focus on input field for fast consecutive additions
+        // (no clearing of input, so user can quickly add same number multiple times)
+        numberInput.focus();
+      }
+
+      // Reset everything: current sum back to 0, clear input field, update display
+      function resetCalculator() {
+        currentSum = 0;
+        updateResultDisplay();
+        // Clear the number input field
+        numberInput.value = '';
+        // Remove any invalid styling (if active)
+        numberInput.classList.remove('is-invalid');
+        // Optionally set focus to input after reset for convenience
+        numberInput.focus();
+      }
+
+      // Attach event listeners
+      form.addEventListener('submit', onFormSubmit);
+      resetButton.addEventListener('click', resetCalculator);
+
+      // Ensure initial display is 0 (already 0 in HTML, but sync just in case)
+      updateResultDisplay();
+    })();
+  </script>
+</body>
+</html>
