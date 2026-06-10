@@ -44,3 +44,54 @@ const response = await axios.post(routes.tasksPath(), data); // Где data эт
 ```
 
 Во время инициализации (внутри функции), приложение должно делать запрос на сервер, извлекать оттуда уже добавленные задачи и выводить их на экран. Во время добавления новой задачи приложение должно выполнять запрос на добавление задачи на сервер.
+
+
+import axios from 'axios';
+
+export default function initTodoApp() {
+  const form = document.querySelector('.form-inline');
+  const input = form.querySelector('input[name="name"]');
+  const tasksList = document.getElementById('tasks');
+
+  const loadTasks = async () => {
+    try {
+      const response = await axios.get(routes.tasksPath());
+      const { items } = response.data;
+
+      tasksList.innerHTML = '';
+      // Отображаем задачи в обратном порядке, чтобы последняя добавленная была первой
+      [...items].reverse().forEach((item) => {
+        const li = document.createElement('li');
+        li.classList.add('list-group-item');
+        li.textContent = item.name;
+        tasksList.appendChild(li);
+      });
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    }
+  };
+
+  const addTask = async (taskName) => {
+    try {
+      const response = await axios.post(routes.tasksPath(), { name: taskName });
+      if (response.status === 201) {
+        const li = document.createElement('li');
+        li.classList.add('list-group-item');
+        li.textContent = taskName;
+        tasksList.prepend(li); // Добавляем в начало списка
+        input.value = ''; // Очищаем поле ввода
+      }
+    } catch (error) {
+      console.error('Failed to add task:', error);
+    }
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const taskName = input.value.trim();
+    if (!taskName) return;
+    await addTask(taskName);
+  });
+
+  loadTasks();
+}
