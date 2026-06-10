@@ -105,3 +105,9 @@ test('working process', async () => {
     items.forEach((item) => expect(item).toHaveClass('list-group-item'));
   });
 });
+// ❌ Current (may fail depending on version)
+await userEvent.type(input, 'new task');
+
+// ✅ Recommended
+const user = userEvent.setup();
+await user.type(input, 'new task');
