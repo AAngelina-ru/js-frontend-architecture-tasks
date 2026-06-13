@@ -38,3 +38,9 @@
     "webpack-dev-server": "^4.15.0"
   }
 }
+"jest": {
+  "transform": {
+    "^.+\\.[t|j]sx?$": "babel-jest"
+  },
+  "testEnvironment": "jsdom",
+  "testTimeout": 10000,
