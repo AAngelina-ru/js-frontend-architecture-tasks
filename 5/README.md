@@ -173,9 +173,138 @@
   </div>
 </div>
 ```
+export default function taskScheduler() {
+  // Состояние приложения
+  let lists = ['General'];
+  let currentList = 'General';
+  let tasks = {
+    'General': []
+  };
 
-Списки должны иметь уникальные имена. Добавление списка с уже существующим именем не должно производить никакого эффекта.
+  // DOM элементы
+  const listsContainer = document.querySelector('[data-container="lists"]');
+  const tasksContainer = document.querySelector('[data-container="tasks"]');
+  const newListForm = document.querySelector('[data-container="new-list-form"]');
+  const newTaskForm = document.querySelector('[data-container="new-task-form"]');
 
-## Задание
+  // Функция для рендеринга списков
+  function renderLists() {
+    const ul = document.createElement('ul');
+    
+    lists.forEach(listName => {
+      const li = document.createElement('li');
+      
+      if (listName === currentList) {
+        li.innerHTML = `<b>${escapeHtml(listName)}</b>`;
+      } else {
+        const link = document.createElement('a');
+        link.href = `#${listName.toLowerCase()}`;
+        link.textContent = listName;
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          switchToList(listName);
+        });
+        li.appendChild(link);
+      }
+      
+      ul.appendChild(li);
+    });
+    
+    // Очищаем и обновляем контейнер
+    listsContainer.innerHTML = '';
+    listsContainer.appendChild(ul);
+  }
 
-Экспортируйте функцию по умолчанию, которая реализует всю необходимую логику.
+  // Функция для рендеринга задач текущего списка
+  function renderTasks() {
+    const currentTasks = tasks[currentList] || [];
+    
+    if (currentTasks.length === 0) {
+      tasksContainer.innerHTML = '';
+      return;
+    }
+    
+    const ul = document.createElement('ul');
+    
+    currentTasks.forEach(taskName => {
+      const li = document.createElement('li');
+      li.textContent = taskName;
+      ul.appendChild(li);
+    });
+    
+    tasksContainer.innerHTML = '';
+    tasksContainer.appendChild(ul);
+  }
+
+  // Функция для переключения на другой список
+  function switchToList(listName) {
+    if (lists.includes(listName)) {
+      currentList = listName;
+      renderLists();
+      renderTasks();
+    }
+  }
+
+  // Функция для добавления нового списка
+  function addList(listName) {
+    const trimmedName = listName.trim();
+    
+    // Проверка на пустое имя и уникальность
+    if (!trimmedName || lists.includes(trimmedName)) {
+      return false;
+    }
+    
+    lists.push(trimmedName);
+    tasks[trimmedName] = [];
+    renderLists();
+    return true;
+  }
+
+  // Функция для добавления новой задачи
+  function addTask(taskName) {
+    const trimmedName = taskName.trim();
+    
+    if (!trimmedName) {
+      return false;
+    }
+    
+    if (!tasks[currentList]) {
+      tasks[currentList] = [];
+    }
+    
+    tasks[currentList].push(trimmedName);
+    renderTasks();
+    return true;
+  }
+
+  // Функция для экранирования HTML символов
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // Обработчик формы добавления списка
+  newListForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = newListForm.querySelector('#new-list-name');
+    if (input && input.value) {
+      addList(input.value);
+      input.value = '';
+    }
+  });
+
+  // Обработчик формы добавления задачи
+  newTaskForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = newTaskForm.querySelector('#new-task-name');
+    if (input && input.value) {
+      addTask(input.value);
+      input.value = '';
+    }
+  });
+
+  // Инициализация: рендерим начальное состояние
+  renderLists();
+  renderTasks();
+}
