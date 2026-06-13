@@ -33,3 +33,499 @@
 </body>
 
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Task Manager - Lists & Tasks</title>
+  <!-- Bootstrap 4 CSS + Icons for better UX -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css">
+  <style>
+    /* subtle custom styling */
+    .list-group-item.active-task-list {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: white;
+    }
+    .list-group-item.active-task-list .badge-light {
+      background-color: #fff;
+      color: #007bff;
+    }
+    .task-item.completed span {
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+    .task-actions button {
+      margin-left: 4px;
+    }
+    .card-header small {
+      font-size: 0.75rem;
+    }
+    .trash-icon {
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .trash-icon:hover {
+      opacity: 0.7;
+    }
+    .list-group-item {
+      transition: all 0.1s ease;
+    }
+    .badge-pill {
+      font-size: 0.7rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <div class="row">
+      <!-- LEFT COLUMN: LISTS MANAGER -->
+      <div class="col-md-5">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="fas fa-list-ul"></i> Lists</h3>
+          </div>
+          <div class="card-body">
+            <!-- New list form -->
+            <form class="form-inline mb-3" data-container="new-list-form" id="newListForm">
+              <div class="input-group w-100">
+                <input type="text" id="new-list-name" class="form-control" placeholder="e.g., Work, Shopping" required>
+                <div class="input-group-append">
+                  <input type="submit" class="btn btn-primary" value="Add List">
+                </div>
+              </div>
+            </form>
+            <!-- Dynamic lists container -->
+            <div data-container="lists" id="listsContainer">
+              <!-- lists will be injected here -->
+            </div>
+            <div class="mt-2 text-muted small">
+              <i class="fas fa-info-circle"></i> Click a list to see its tasks. Delete list removes all its tasks.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: TASKS MANAGER (context aware: shows tasks for selected list) -->
+      <div class="col-md-7">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h3 class="mb-0"><i class="fas fa-tasks"></i> Tasks</h3>
+            <span id="selectedListTitleBadge" class="badge badge-light">No list selected</span>
+          </div>
+          <div class="card-body">
+            <!-- New task form - only enabled when list selected -->
+            <form class="form-inline mb-3" data-container="new-task-form" id="newTaskForm">
+              <div class="input-group w-100">
+                <input type="text" id="new-task-name" class="form-control" placeholder="Task description..." required>
+                <div class="input-group-append">
+                  <input type="submit" class="btn btn-success" value="Add Task" id="addTaskBtn">
+                </div>
+              </div>
+              <small class="form-text text-muted w-100 mt-1" id="taskFormHelper">Select a list from left to add tasks</small>
+            </form>
+            <!-- Tasks container -->
+            <div data-container="tasks" id="tasksContainer">
+              <div class="alert alert-secondary text-center">Select a list to view its tasks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- APP STATE ----------
+    // Each list: { id, name, tasks: [] }
+    // Each task: { id, description, completed }
+    let lists = [];
+    let selectedListId = null;        // currently active list ID (tasks shown for this list)
+    let nextListId = 1;
+    let nextTaskId = 1;
+
+    // Helper: load from localStorage if exists
+    function loadFromStorage() {
+      const stored = localStorage.getItem('taskManagerApp');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          lists = data.lists || [];
+          nextListId = data.nextListId || 1;
+          nextTaskId = data.nextTaskId || 1;
+          selectedListId = data.selectedListId || null;
+          // ensure selectedListId still exists in current lists
+          if (selectedListId && !lists.find(l => l.id === selectedListId)) {
+            selectedListId = null;
+          }
+        } catch(e) { console.warn(e); }
+      }
+      // if no data, initialize with demo data
+      if (lists.length === 0) {
+        // demo list: Personal
+        const demoListId = nextListId++;
+        lists.push({
+          id: demoListId,
+          name: "Personal",
+          tasks: [
+            { id: nextTaskId++, description: "Review code challenge", completed: false },
+            { id: nextTaskId++, description: "Write documentation", completed: true }
+          ]
+        });
+        // second demo: Work
+        const workListId = nextListId++;
+        lists.push({
+          id: workListId,
+          name: "Work",
+          tasks: [
+            { id: nextTaskId++, description: "Prepare presentation", completed: false },
+            { id: nextTaskId++, description: "Team meeting at 3pm", completed: false }
+          ]
+        });
+        selectedListId = demoListId;   // default select first
+      }
+      // ensure selectedListId is valid
+      if (selectedListId && !lists.find(l => l.id === selectedListId)) {
+        selectedListId = lists.length ? lists[0].id : null;
+      }
+    }
+
+    function saveToStorage() {
+      const data = {
+        lists: lists,
+        nextListId: nextListId,
+        nextTaskId: nextTaskId,
+        selectedListId: selectedListId
+      };
+      localStorage.setItem('taskManagerApp', JSON.stringify(data));
+    }
+
+    // ----- RENDER LISTS (left column) -----
+    function renderLists() {
+      const container = document.querySelector('[data-container="lists"]');
+      if (!container) return;
+      
+      if (lists.length === 0) {
+        container.innerHTML = `<div class="alert alert-warning">No lists yet. Create one!</div>`;
+        return;
+      }
+      
+      const listGroup = document.createElement('div');
+      listGroup.className = 'list-group';
+      
+      lists.forEach(list => {
+        const isActive = (selectedListId === list.id);
+        const item = document.createElement('div');
+        item.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isActive ? 'active-task-list' : ''}`;
+        item.style.cursor = 'pointer';
+        // count pending tasks
+        const pendingCount = list.tasks.filter(t => !t.completed).length;
+        const totalCount = list.tasks.length;
+        
+        // left side: name and badge
+        const leftDiv = document.createElement('div');
+        leftDiv.style.flex = '1';
+        leftDiv.innerHTML = `
+          <strong>${escapeHtml(list.name)}</strong>
+          <span class="badge badge-secondary badge-pill ml-2">${pendingCount}/${totalCount}</span>
+        `;
+        
+        // delete list icon
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-outline-danger trash-icon';
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        deleteBtn.title = 'Delete list (tasks will be removed)';
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteListById(list.id);
+        };
+        
+        item.appendChild(leftDiv);
+        item.appendChild(deleteBtn);
+        
+        // select list on click
+        item.addEventListener('click', (e) => {
+          // avoid if click originated from delete button
+          if (e.target.closest('.trash-icon')) return;
+          if (selectedListId !== list.id) {
+            selectedListId = list.id;
+            renderAll();  // re-render both panels
+            saveToStorage();
+          }
+        });
+        
+        listGroup.appendChild(item);
+      });
+      
+      container.innerHTML = '';
+      container.appendChild(listGroup);
+    }
+    
+    // ----- DELETE LIST -----
+    function deleteListById(listId) {
+      if (!confirm('Delete this list? All tasks inside will be permanently removed.')) return;
+      const index = lists.findIndex(l => l.id === listId);
+      if (index !== -1) {
+        lists.splice(index, 1);
+        if (selectedListId === listId) {
+          // if deleted selected list, choose first available or null
+          selectedListId = lists.length ? lists[0].id : null;
+        }
+        renderAll();
+        saveToStorage();
+      }
+    }
+    
+    // ----- ADD NEW LIST -----
+    function addNewList(name) {
+      if (!name || name.trim() === '') {
+        alert('Please enter a list name');
+        return false;
+      }
+      const trimmedName = name.trim();
+      // optional: avoid duplicate names? not required but friendly
+      const exists = lists.some(l => l.name.toLowerCase() === trimmedName.toLowerCase());
+      if (exists) {
+        alert('A list with similar name already exists. Use unique name.');
+        return false;
+      }
+      const newList = {
+        id: nextListId++,
+        name: trimmedName,
+        tasks: []
+      };
+      lists.push(newList);
+      // auto-select new list
+      selectedListId = newList.id;
+      renderAll();
+      saveToStorage();
+      return true;
+    }
+    
+    // ----- TASKS RENDERING (based on selectedListId) -----
+    function renderTasks() {
+      const tasksContainer = document.querySelector('[data-container="tasks"]');
+      const taskFormHelper = document.getElementById('taskFormHelper');
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      
+      if (!tasksContainer) return;
+      
+      // update helper / button state
+      if (!selectedListId) {
+        tasksContainer.innerHTML = `<div class="alert alert-info text-center"><i class="fas fa-arrow-left"></i> Select a list from left to manage tasks</div>`;
+        if (taskFormHelper) taskFormHelper.innerText = '⚠️ Select a list first to add tasks';
+        if (addTaskBtn) addTaskBtn.disabled = true;
+        // update badge
+        const badgeSpan = document.getElementById('selectedListTitleBadge');
+        if (badgeSpan) badgeSpan.innerText = 'No list selected';
+        return;
+      }
+      
+      // enable task add button
+      if (addTaskBtn) addTaskBtn.disabled = false;
+      if (taskFormHelper) taskFormHelper.innerText = 'Add new task to current list';
+      
+      const currentList = lists.find(l => l.id === selectedListId);
+      if (!currentList) {
+        tasksContainer.innerHTML = `<div class="alert alert-danger">Selected list not found. Please select another list.</div>`;
+        const badgeSpan = document.getElementById('selectedListTitleBadge');
+        if (badgeSpan) badgeSpan.innerText = 'Invalid list';
+        return;
+      }
+      
+      // update badge with current list name
+      const badgeSpan = document.getElementById('selectedListTitleBadge');
+      if (badgeSpan) badgeSpan.innerText = currentList.name;
+      
+      const tasks = currentList.tasks;
+      if (tasks.length === 0) {
+        tasksContainer.innerHTML = `
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+            <p>No tasks yet. Add your first task!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // build task list with checkboxes and delete
+      const taskGroup = document.createElement('div');
+      taskGroup.className = 'list-group';
+      
+      tasks.forEach(task => {
+        const taskItem = document.createElement('div');
+        taskItem.className = `list-group-item d-flex justify-content-between align-items-center task-item ${task.completed ? 'completed' : ''}`;
+        
+        // left side: checkbox + description
+        const leftPart = document.createElement('div');
+        leftPart.className = 'd-flex align-items-center';
+        leftPart.style.flex = '1';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'mr-3';
+        checkbox.checked = task.completed;
+        checkbox.style.transform = 'scale(1.2)';
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation();
+          toggleTaskCompletion(currentList.id, task.id, checkbox.checked);
+        });
+        
+        const taskText = document.createElement('span');
+        taskText.innerHTML = escapeHtml(task.description);
+        taskText.className = task.completed ? 'text-muted' : '';
+        
+        leftPart.appendChild(checkbox);
+        leftPart.appendChild(taskText);
+        
+        // delete task button
+        const deleteTaskBtn = document.createElement('button');
+        deleteTaskBtn.className = 'btn btn-sm btn-outline-danger';
+        deleteTaskBtn.innerHTML = '<i class="fas fa-times"></i>';
+        deleteTaskBtn.title = 'Delete task';
+        deleteTaskBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteTaskById(currentList.id, task.id);
+        };
+        
+        taskItem.appendChild(leftPart);
+        taskItem.appendChild(deleteTaskBtn);
+        taskGroup.appendChild(taskItem);
+      });
+      
+      tasksContainer.innerHTML = '';
+      tasksContainer.appendChild(taskGroup);
+    }
+    
+    // toggle task completion status
+    function toggleTaskCompletion(listId, taskId, isChecked) {
+      const list = lists.find(l => l.id === listId);
+      if (list) {
+        const task = list.tasks.find(t => t.id === taskId);
+        if (task) {
+          task.completed = isChecked;
+          renderAll();   // refresh tasks & update list counters
+          saveToStorage();
+        }
+      }
+    }
+    
+    function deleteTaskById(listId, taskId) {
+      const list = lists.find(l => l.id === listId);
+      if (list) {
+        const taskIndex = list.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          list.tasks.splice(taskIndex, 1);
+          renderAll();
+          saveToStorage();
+        }
+      }
+    }
+    
+    // add new task to selected list
+    function addTaskToSelectedList(description) {
+      if (!selectedListId) {
+        alert('Please select a list first!');
+        return false;
+      }
+      if (!description || description.trim() === '') {
+        alert('Task description cannot be empty');
+        return false;
+      }
+      const currentList = lists.find(l => l.id === selectedListId);
+      if (!currentList) {
+        alert('Selected list not found!');
+        return false;
+      }
+      const newTask = {
+        id: nextTaskId++,
+        description: description.trim(),
+        completed: false
+      };
+      currentList.tasks.push(newTask);
+      renderAll();
+      saveToStorage();
+      return true;
+    }
+    
+    // helper: escape HTML to avoid injection
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
+      });
+    }
+    
+    // main render: both columns, also updates task form state
+    function renderAll() {
+      renderLists();
+      renderTasks();
+      // also manage new task form input enable/disable visually
+      const taskInput = document.getElementById('new-task-name');
+      if (taskInput) {
+        taskInput.disabled = !selectedListId;
+        if (!selectedListId) taskInput.placeholder = "Select a list first";
+        else taskInput.placeholder = "e.g., Buy groceries";
+      }
+    }
+    
+    // event handlers initialization
+    function bindEvents() {
+      // New list form submit
+      const newListForm = document.querySelector('#newListForm');
+      if (newListForm) {
+        newListForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = document.getElementById('new-list-name');
+          if (input) {
+            addNewList(input.value);
+            input.value = '';   // clear after add
+            input.focus();
+          }
+        });
+      }
+      
+      // New task form submit
+      const newTaskForm = document.querySelector('#newTaskForm');
+      if (newTaskForm) {
+        newTaskForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          if (!selectedListId) {
+            alert('Please select a list from left panel first');
+            return;
+          }
+          const taskInput = document.getElementById('new-task-name');
+          if (taskInput) {
+            addTaskToSelectedList(taskInput.value);
+            taskInput.value = '';
+            taskInput.focus();
+          }
+        });
+      }
+    }
+    
+    // initial load & start
+    function init() {
+      loadFromStorage();
+      bindEvents();
+      renderAll();
+      // extra: auto-focus and disable task input if no list
+      const taskInput = document.getElementById('new-task-name');
+      if (taskInput) {
+        taskInput.disabled = !selectedListId;
+        if (!selectedListId) taskInput.placeholder = "Select a list first";
+      }
+      // Update badge on selected list title
+    }
+    
+    init();
+  </script>
+</body>
+</html>
