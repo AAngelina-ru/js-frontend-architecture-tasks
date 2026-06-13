@@ -43,3 +43,13 @@ module.exports = () => {
     }
     return config;
 };
+{
+    test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
+    type: 'asset',
+    parser: {
+        dataUrlCondition: {
+            maxSize: 8 * 1024, // 8kb
+        },
+    },
+} 
+    
